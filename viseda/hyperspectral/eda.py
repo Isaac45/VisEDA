@@ -1070,8 +1070,12 @@ class HyperspectralEDA:
         rec.band_saturation_frac = (cube == data_max).mean(axis=(0, 1))
 
         # ── spectral quality ─────────────────────────────────────────
-        rec.spectral_smoothness = float(
-            np.abs(np.diff(band_means)).mean())
+        if B > 1:
+            rec.spectral_smoothness = float(
+                np.abs(np.diff(band_means)).mean()
+            )
+        else:
+            rec.spectral_smoothness = 0.0
         glob_std = float(band_stds.std()) + eps
         rec.n_dropout_bands = int(
             (band_stds < self.dropout_threshold * glob_std).sum())
@@ -1785,31 +1789,31 @@ footer{{margin-top:3rem;color:var(--muted);font-size:.72rem;
 <div class="grid">
   {counts_card}
   {bar_chart("Label Distribution", inv.get("label_distribution") or {}, span=2)}
-  {bar_chart("Band Count Distribution", {{str(k):v for k,v in inv.get("band_distribution",{{}}).items()}})}
-  {bar_chart("Format Distribution", inv.get("format_distribution",{{}}))}
+  {bar_chart("Band Count Distribution", {str(k): v for k, v in inv.get("band_distribution", {}).items()})}
+  {bar_chart("Format Distribution", inv.get("format_distribution", {}))}
 </div>
 
 <h2>📐 Spatial</h2>
 <div class="grid">
-  {card("Height (px)",    sp.get("height",  {{}}))}
-  {card("Width (px)",     sp.get("width",   {{}}))}
-  {card("Bands",          sp.get("bands",   {{}}))}
-  {card("File Size (KB)", sp.get("file_size_kb", {{}}))}
+  {card("Height (px)",    sp.get("height",  {}))}
+  {card("Width (px)",     sp.get("width",   {}))}
+  {card("Bands",          sp.get("bands",   {}))}
+  {card("File Size (KB)", sp.get("file_size_kb", {}))}
 </div>
 
 <h2>〰️ Spectral Statistics</h2>
 <div class="grid">
-  {card("Global Mean (per cube)",    ss.get("global_mean",   {{}}))}
-  {card("Global Std (per cube)",     ss.get("global_std",    {{}}))}
-  {card("Dynamic Range (per cube)",  ss.get("dynamic_range", {{}}))}
+  {card("Global Mean (per cube)",    ss.get("global_mean",   {}))}
+  {card("Global Std (per cube)",     ss.get("global_std",    {}))}
+  {card("Dynamic Range (per cube)",  ss.get("dynamic_range", {}))}
 </div>
 
 <h2>🔬 Spectral Quality</h2>
 <div class="grid">
-  {card("SNR (per cube)",             sq.get("snr_mean",            {{}}))}
-  {card("Spectral Smoothness",        sq.get("spectral_smoothness", {{}}))}
-  {card("Inter-band Correlation",     sq.get("inter_band_corr",     {{}}))}
-  {card("Dropout Bands (per cube)",   sq.get("n_dropout_bands",     {{}}))}
+  {card("SNR (per cube)",             sq.get("snr_mean",            {}))}
+  {card("Spectral Smoothness",        sq.get("spectral_smoothness", {}))}
+  {card("Inter-band Correlation",     sq.get("inter_band_corr",     {}))}
+  {card("Dropout Bands (per cube)",   sq.get("n_dropout_bands",     {}))}
 </div>
 
 <h2>🌿 Spectral Indices</h2>
@@ -1823,7 +1827,7 @@ footer{{margin-top:3rem;color:var(--muted);font-size:.72rem;
 
 <h2>🏷️ Labels</h2>
 <div class="grid">
-  {bar_chart("Label Distribution", lb.get("label_distribution") or {{}}, span=2)}
+  {bar_chart("Label Distribution", lb.get("label_distribution") or {}, span=2)}
   {imbalance_card}
 </div>
 

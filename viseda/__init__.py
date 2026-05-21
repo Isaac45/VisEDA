@@ -19,13 +19,12 @@ __email__ = "ioa2@stir.ac.uk"
 __license__ = "MIT"
 
 from viseda.image import ImageEDA
-from viseda.hyperspectral import HyperspectralEDA, HyperspectralDatasetEDA
+from viseda.hyperspectral import HyperspectralEDA
 from viseda.pointcloud import PointCloudEDA, PointCloudDatasetEDA
 
 __all__ = [
     "ImageEDA",
     "HyperspectralEDA",
-    "HyperspectralDatasetEDA",
     "PointCloudEDA",
     "PointCloudDatasetEDA",
 ]
