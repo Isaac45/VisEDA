@@ -3,14 +3,7 @@ VisEDA — Visual Exploratory Data Analysis
 ==========================================
 
 A Python library for performing rich EDA on image datasets,
-hyperspectral data, and point clouds.
-
-Modules
--------
-- viseda.image         : EDA for standard image datasets (RGB, grayscale)
-- viseda.hyperspectral : EDA for hyperspectral / multispectral image cubes
-- viseda.pointcloud    : EDA for 3D point cloud datasets
-- viseda.report        : HTML report generation
+hyperspectral data, point clouds, and videos.
 """
 
 __version__ = "0.1.0"
@@ -21,9 +14,6 @@ __license__ = "MIT"
 from viseda.image import ImageEDA
 from viseda.hyperspectral import HyperspectralEDA
 from viseda.pointcloud import PointCloudEDA
+from viseda.video import VideoEDA
 
-__all__ = [
-    "ImageEDA",
-    "HyperspectralEDA",
-    "PointCloudEDA",
-]
+__all__ = ["ImageEDA", "HyperspectralEDA", "PointCloudEDA", "VideoEDA"]
