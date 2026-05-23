@@ -280,7 +280,7 @@ def test_edge_cases() -> None:
     ok("Single-point cloud handled correctly")
 
 
-def test_user_file(file_path: str, quick: bool, save: bool, out_dir: Path) -> None:
+def test_user_file(file_path: str, quick: bool, save: bool, out_dir: Path, report_path: str) -> None:
     section("11 · USER-SUPPLIED FILE")
     eda = PointCloudEDA(verbose=True, compute_neighbors=not quick, compute_geometry=True)
     eda.load(file_path, label_from_parent=True)
@@ -290,11 +290,14 @@ def test_user_file(file_path: str, quick: bool, save: bool, out_dir: Path) -> No
              "If this is a LAS/LAZ file, install laspy first: pip install laspy")
         return
     test_summary(eda)
+    # Generate the final report from the user-supplied file, not the synthetic test data.
+    eda.report(report_path)
+    ok(f"User file report saved → {report_path}")
     if save:
         save_or_show(eda, "plot", save, out_dir, cloud_index=eda._records.index(valid[0]))
 
 
-def test_user_directory(dir_path: str, quick: bool, save: bool, out_dir: Path) -> None:
+def test_user_directory(dir_path: str, quick: bool, save: bool, out_dir: Path, report_path: str) -> None:
     section("12 · USER-SUPPLIED DIRECTORY")
     eda = PointCloudEDA(verbose=True, compute_neighbors=not quick, compute_geometry=True)
     eda.load(dir_path, label_from_parent=True, recursive=True)
@@ -304,6 +307,9 @@ def test_user_directory(dir_path: str, quick: bool, save: bool, out_dir: Path) -
              "If the directory contains LAS/LAZ files, install laspy first: pip install laspy")
         return
     test_summary(eda)
+    # Generate the final report from the user-supplied directory, not the synthetic test data.
+    eda.report(report_path)
+    ok(f"User directory report saved → {report_path}")
     if save:
         save_or_show(eda, "plot_dataset", save, out_dir)
         save_or_show(eda, "plot_clouds_grid", save, out_dir, n=8)
@@ -367,9 +373,9 @@ def main() -> None:
         run("edge_cases", test_edge_cases)
 
     if args.file:
-        run("user_file", lambda: test_user_file(args.file, args.quick, args.save_plots, out_dir))
+        run("user_file", lambda: test_user_file(args.file, args.quick, args.save_plots, out_dir, args.report))
     if args.dir:
-        run("user_directory", lambda: test_user_directory(args.dir, args.quick, args.save_plots, out_dir))
+        run("user_directory", lambda: test_user_directory(args.dir, args.quick, args.save_plots, out_dir, args.report))
 
     elapsed = time.perf_counter() - t0
     print("\n" + "═" * 62)

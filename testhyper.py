@@ -287,7 +287,7 @@ def test_summary(eda: HyperspectralEDA) -> None:
         info("PCA not computed")
 
 
-def test_per_record_fields(eda: HyperspectralEDA) -> None:
+def test_per_record_fields(eda: HyperspectralEDA, strict_spectral_indices: bool = True) -> None:
     section("6 · PER-RECORD FIELD VALIDATION")
 
     valid = [r for r in eda._records if not r.is_corrupt]
@@ -312,13 +312,28 @@ def test_per_record_fields(eda: HyperspectralEDA) -> None:
 
     ok(f"All {len(required)} fields populated on {len(sample)} sampled records")
 
-    # spectral index spot check
+    # Spectral index spot check.
+    # Synthetic reflectance-like cubes should stay in a small expected range.
+    # Real public .mat datasets may be stored as raw radiance / digital numbers,
+    # and EVI can become numerically extreme when its denominator is close to zero.
+    # For user-supplied real datasets, validate that values are finite instead of
+    # forcing the synthetic-data range.
+    extreme_indices = []
     for rec in sample:
         for idx in ("ndvi_mean", "ndwi_mean", "evi_mean", "savi_mean"):
             v = getattr(rec, idx)
             if v is not None:
-                assert -2.0 <= v <= 2.0, f"{idx} = {v} out of range"
-    ok("Spectral index values in expected range")
+                assert np.isfinite(v), f"{idx} is not finite: {v}"
+                if not (-2.0 <= v <= 2.0):
+                    extreme_indices.append((rec.path, idx, v))
+
+    if strict_spectral_indices:
+        assert not extreme_indices, f"Spectral index value(s) out of expected synthetic range: {extreme_indices[:3]}"
+        ok("Spectral index values in expected range")
+    else:
+        if extreme_indices:
+            info("Some spectral indices are outside the synthetic-data range; this is allowed for real raw .mat datasets.")
+        ok("Spectral index values are finite")
 
 
 def test_spectral_signature(eda: HyperspectralEDA, tmpdir: Path) -> None:
@@ -578,6 +593,10 @@ def test_real_mat(mat_path: str, save: bool, out_dir: Path,
     test_summary(eda)
     test_per_record_fields(eda)
 
+    # If a real .mat file is supplied, make the report reflect that real input.
+    eda.report("viseda_hyper_real_mat_report.html")
+    ok("Real .mat report saved → viseda_hyper_real_mat_report.html")
+
     file_recs = [i for i, r in enumerate(eda._records)
                  if not r.is_corrupt]
 
@@ -626,19 +645,24 @@ def parse_args():
 
 
 def main():
-    args   = parse_args()
+    args = parse_args()
     out_dir = Path("outputs_hyper")
-    tmpdir  = Path(tempfile.mkdtemp())
+    tmpdir = Path(tempfile.mkdtemp())
+    has_user_input = bool(args.dir or args.mat)
 
     print("\n╔" + "═"*60 + "╗")
     print("║  VisEDA — HyperspectralEDA Complete Test Suite" + " "*14 + "║")
     print("╚" + "═"*60 + "╝")
     print(f"\n  Save plots : {args.save_plots}")
     print(f"  Quick mode : {args.quick}")
-    print(f"  .mat file  : {args.mat or 'None (synthetic only)'}")
-    print(f"  Directory  : {args.dir or 'None (synthetic only)'}")
+    print(f"  .mat file  : {args.mat or 'None'}")
+    print(f"  Directory  : {args.dir or 'None'}")
+    if has_user_input:
+        info("User data supplied — synthetic checks will run without generating final plots/reports.")
+        info("Final report and saved plots will be generated from the supplied user data only.")
 
-    passed = 0; failed = 0
+    passed = 0
+    failed = 0
     total_start = time.perf_counter()
 
     def run(name, fn):
@@ -646,86 +670,129 @@ def main():
         try:
             fn()
             passed += 1
-        except Exception as e:
+        except Exception:
             print(f"\n  ✘  TEST FAILED: {name}")
-            import traceback; traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             failed += 1
 
-    # ── Core synthetic tests ───────────────────────────────────────────
+    # ── Core synthetic checks ─────────────────────────────────────────
+    # These validate the API. When real user input is supplied, they do not
+    # create final plot/report files, preventing duplicate dashboards such as
+    # plot_dataset.png from synthetic arrays.
     eda_arrays = [None]
 
     def _load_arrays():
         eda_arrays[0] = test_load_arrays(args.quick)
 
-    run("load_arrays",    _load_arrays)
+    run("load_arrays", _load_arrays)
 
     if eda_arrays[0]:
-        run("summary",              lambda: test_summary(eda_arrays[0]))
-        run("per_record_fields",    lambda: test_per_record_fields(eda_arrays[0]))
-        run("normalization_idem",   lambda: test_normalization_idempotent(eda_arrays[0]))
-        run("plot_dataset",         lambda: test_plot_dataset(eda_arrays[0], args.save_plots, out_dir))
-        run("plot_spectra",         lambda: test_plot_spectra(eda_arrays[0], args.save_plots, out_dir))
-        run("plot_spectral_div",    lambda: test_plot_spectral_diversity(eda_arrays[0], args.save_plots, out_dir))
-        run("html_report",          lambda: test_html_report(eda_arrays[0], args.report))
+        run("summary", lambda: test_summary(eda_arrays[0]))
+        run("per_record_fields", lambda: test_per_record_fields(eda_arrays[0]))
+        run("normalization_idem", lambda: test_normalization_idempotent(eda_arrays[0]))
 
-    # ── Directory tests ────────────────────────────────────────────────
+        if not has_user_input:
+            run("plot_dataset", lambda: test_plot_dataset(eda_arrays[0], args.save_plots, out_dir))
+            run("plot_spectra", lambda: test_plot_spectra(eda_arrays[0], args.save_plots, out_dir))
+            run("plot_spectral_div", lambda: test_plot_spectral_diversity(eda_arrays[0], args.save_plots, out_dir))
+            run("html_report", lambda: test_html_report(eda_arrays[0], args.report))
+
+    # ── Synthetic file-backed checks ──────────────────────────────────
+    # These are kept for API coverage. Their plot outputs are suppressed when
+    # real user input is supplied, so final visual outputs come from user data.
     eda_dir = [None]
 
     def _load_dir():
         eda_dir[0] = test_load_npy_directory(tmpdir, args.quick)
 
-    run("load_npy_dir",   _load_dir)
+    run("load_npy_dir", _load_dir)
 
     if eda_dir[0]:
-        run("spectral_signature",   lambda: test_spectral_signature(eda_dir[0], tmpdir))
-        run("compute_index",        lambda: test_compute_index(eda_dir[0]))
-        run("pca_scores",           lambda: test_pca_scores(eda_dir[0]))
-        run("plot_single",          lambda: test_plot_single(eda_dir[0], args.save_plots, out_dir, args.quick))
-        run("plot_false_colour",    lambda: test_plot_false_colour(eda_dir[0], args.save_plots, out_dir))
-        run("plot_ndvi",            lambda: test_plot_ndvi(eda_dir[0], args.save_plots, out_dir))
-        run("plot_pca_components",  lambda: test_plot_pca_components(eda_dir[0], args.save_plots, out_dir))
-        run("plot_band_stats",      lambda: test_plot_band_stats(eda_dir[0], args.save_plots, out_dir))
+        run("spectral_signature", lambda: test_spectral_signature(eda_dir[0], tmpdir))
+        run("compute_index", lambda: test_compute_index(eda_dir[0]))
+        run("pca_scores", lambda: test_pca_scores(eda_dir[0]))
 
-    # ── List loading ───────────────────────────────────────────────────
-    run("load_npy_list",  lambda: test_load_npy_list(tmpdir, args.quick))
-    run("npz_loading",    lambda: test_npz_loading(tmpdir))
+        if not has_user_input:
+            run("plot_single", lambda: test_plot_single(eda_dir[0], args.save_plots, out_dir, args.quick))
+            run("plot_false_colour", lambda: test_plot_false_colour(eda_dir[0], args.save_plots, out_dir))
+            run("plot_ndvi", lambda: test_plot_ndvi(eda_dir[0], args.save_plots, out_dir))
+            run("plot_pca_components", lambda: test_plot_pca_components(eda_dir[0], args.save_plots, out_dir))
+            run("plot_band_stats", lambda: test_plot_band_stats(eda_dir[0], args.save_plots, out_dir))
 
-    # ── Edge cases ─────────────────────────────────────────────────────
-    run("edge_cases",     test_edge_cases)
+    run("load_npy_list", lambda: test_load_npy_list(tmpdir, args.quick))
+    run("npz_loading", lambda: test_npz_loading(tmpdir))
+    run("edge_cases", test_edge_cases)
 
-    # ── Real .mat file (optional) ──────────────────────────────────────
+    # ── User-supplied .mat file ───────────────────────────────────────
     if args.mat:
-        run("real_mat",   lambda: test_real_mat(args.mat, args.save_plots,
-                                                out_dir, args.quick))
+        def _user_mat_pipeline():
+            section(f"22 · USER-SUPPLIED .mat FILE — {Path(args.mat).name}")
+            eda_user = test_load_mat(args.mat, args.quick)
+            if eda_user is None:
+                return
+            test_summary(eda_user)
+            test_per_record_fields(eda_user, strict_spectral_indices=False)
+            test_html_report(eda_user, args.report)
+            if args.save_plots:
+                out_dir.mkdir(parents=True, exist_ok=True)
+                eda_user.plot_dataset(save_path=str(out_dir / "plot_dataset.png"))
+                test_plot_spectra(eda_user, True, out_dir)
+                test_plot_spectral_diversity(eda_user, True, out_dir)
+                test_plot_single(eda_user, True, out_dir, args.quick)
+                test_plot_false_colour(eda_user, True, out_dir)
+                test_plot_ndvi(eda_user, True, out_dir)
+                test_plot_pca_components(eda_user, True, out_dir)
+                test_plot_band_stats(eda_user, True, out_dir)
+            else:
+                eda_user.plot_dataset()
+                eda_user.plot_spectra()
+        run("user_mat", _user_mat_pipeline)
 
-    # ── User-supplied directory (optional) ────────────────────────────
+    # ── User-supplied directory ───────────────────────────────────────
     if args.dir:
-        section("23 · USER-SUPPLIED DIRECTORY")
-        try:
+        def _user_dir_pipeline():
+            section("23 · USER-SUPPLIED DIRECTORY")
             eda_user = HyperspectralEDA(
                 verbose=True,
                 wavelengths=np.linspace(400, 2500, 200),
                 compute_glcm=not args.quick,
                 compute_pca=True,
             )
-            eda_user.load(args.dir, label_from_parent=True)
+            eda_user.load(args.dir, label_from_parent=True, recursive=True)
+
+            valid = [r for r in eda_user._records if not r.is_corrupt]
+            if not valid:
+                warn("No valid hyperspectral cubes loaded from the supplied directory.")
+                return
+
             test_summary(eda_user)
+            test_per_record_fields(eda_user, strict_spectral_indices=False)
+            test_html_report(eda_user, args.report)
+
             if args.save_plots:
-                eda_user.plot_dataset(save_path=str(out_dir / "plot_user_dataset.png"))
-                eda_user.plot_spectra(save_path=str(out_dir / "plot_user_spectra.png"))
+                out_dir.mkdir(parents=True, exist_ok=True)
+                # Main detailed dashboard. Uses the standard name so there is only
+                # one final plot_dataset.png, and it belongs to the user dataset.
+                eda_user.plot_dataset(save_path=str(out_dir / "plot_dataset.png"))
+                ok(f"User dataset dashboard saved → {out_dir / 'plot_dataset.png'}")
+
+                test_plot_spectra(eda_user, True, out_dir)
+                test_plot_spectral_diversity(eda_user, True, out_dir)
+                test_plot_single(eda_user, True, out_dir, args.quick)
+                test_plot_false_colour(eda_user, True, out_dir)
+                test_plot_ndvi(eda_user, True, out_dir)
+                test_plot_pca_components(eda_user, True, out_dir)
+                test_plot_band_stats(eda_user, True, out_dir)
             else:
                 eda_user.plot_dataset()
                 eda_user.plot_spectra()
-            passed += 1
-        except Exception as e:
-            import traceback; traceback.print_exc()
-            failed += 1
+        run("user_directory", _user_dir_pipeline)
 
-    # ── Final results ──────────────────────────────────────────────────
+    # ── Final results ─────────────────────────────────────────────────
     elapsed = time.perf_counter() - total_start
     print("\n" + "═"*62)
-    print(f"  Results:  {passed} passed  |  {failed} failed  "
-          f"|  {elapsed:.1f}s total")
+    print(f"  Results:  {passed} passed  |  {failed} failed  |  {elapsed:.1f}s total")
     if args.save_plots:
         print(f"  Plots saved to: {out_dir.resolve()}/")
     print(f"  Report:   {args.report}")
