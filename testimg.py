@@ -424,7 +424,7 @@ def parse_args():
     p.add_argument("--max", type=int, default=None,
                    help="Max images to load (default: all)")
     p.add_argument("--save-plots", action="store_true",
-                   help="Save plots to ./outputs/ instead of displaying")
+                   help="Save plots to ./outputs_img/ instead of displaying")
     p.add_argument("--quick", action="store_true",
                    help="Skip slow tests (average image computation)")
     p.add_argument("--report", default="viseda_report.html",
@@ -438,7 +438,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    out_dir = Path("outputs")
+    out_dir = Path("outputs_img")
 
     print("\n" + "╔" + "═" * 58 + "╗")
     print("║  VisEDA — ImageEDA Complete Test Suite" + " " * 19 + "║")

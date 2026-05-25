@@ -188,27 +188,21 @@ def test_edges():
     ok('Invalid video marked corrupt')
 
 
-def test_user_file(path, quick, save, out, report):
+def test_user_file(path, quick, save, out):
     section('11 · USER-SUPPLIED VIDEO FILE')
     eda = VideoEDA(verbose=True, frame_sample_rate=5 if quick else 1)
     eda.load(path)
     if eda.summary()['inventory']['valid_videos'] == 0: warn('No valid video loaded'); return
     test_summary(eda)
-    # Generate the final report from the user-supplied video file, not the synthetic test data.
-    eda.report(report)
-    ok(f'Report saved from user file → {report}')
     if save: save_or_show(eda, 'plot', save, out, video_index=0)
 
 
-def test_user_dir(path, quick, save, out, report):
+def test_user_dir(path, quick, save, out):
     section('12 · USER-SUPPLIED DIRECTORY')
     eda = VideoEDA(verbose=True, frame_sample_rate=5 if quick else 1)
     eda.load(path, label_from_parent=True)
     if eda.summary()['inventory']['valid_videos'] == 0: warn('No valid videos loaded'); return
     test_summary(eda)
-    # Generate the final report from the user-supplied directory, not the synthetic test data.
-    eda.report(report)
-    ok(f'Report saved from user directory → {report}')
     if save: save_or_show(eda, 'plot_dataset', save, out)
 
 
@@ -249,8 +243,8 @@ def main():
             lambda e: test_summary(e) if e else None)(test_directory(tmp / 'videos', args.quick))),
                          ('formats', lambda: test_formats(tmp / 'formats', args.quick)), ('edges', test_edges)]: run(
             name, fn)
-        if args.file: run('user_file', lambda: test_user_file(args.file, args.quick, args.save_plots, out, args.report))
-        if args.dir: run('user_directory', lambda: test_user_dir(args.dir, args.quick, args.save_plots, out, args.report))
+        if args.file: run('user_file', lambda: test_user_file(args.file, args.quick, args.save_plots, out))
+        if args.dir: run('user_directory', lambda: test_user_dir(args.dir, args.quick, args.save_plots, out))
     print('\n' + '═' * 62)
     print(f'  Results: {passed} passed | {failed} failed')
     print(f'  Report: {args.report}')
