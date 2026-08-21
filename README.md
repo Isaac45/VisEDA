@@ -1,206 +1,572 @@
-# VisEDA — Visual Exploratory Data Analysis
+<div align="center">
 
-VisEDA is a Python toolkit for exploratory data analysis of **image, video,
-hyperspectral, point-cloud, and text/NLP datasets**. It provides numerical
-summaries, dataset-level visualisations, per-sample diagnostics, duplicate or
-similarity analysis where applicable, command-line workflows, and
-self-contained HTML reports.
+<img src="VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
 
-## Modules
+# VisEDA
 
-- **ImageEDA** — spatial, pixel, quality, colour, texture, frequency, duplicate,
-  class-balance, and normalisation analysis.
-- **VideoEDA** — spatial, temporal, motion, blur, scene-change, colour, and
-  video-similarity analysis.
-- **HyperspectralEDA** — per-band statistics, SNR/noise, spectral quality,
-  vegetation/water indices, PCA, false-colour, texture, and spectral-diversity analysis.
-- **PointCloudEDA** — geometry, density, height, duplicate/outlier,
-  nearest-neighbour, PCA shape-descriptor, and attribute analysis.
-- **TextEDA** — length, vocabulary, lexical diversity, symbols, readability,
-  writing scripts, duplicates, TF-IDF document distances, and label analysis.
+### Visual Exploratory Data Analysis for multimodal datasets
+
+**ImageEDA · VideoEDA · HyperspectralEDA · PointCloudEDA · TextEDA**
+
+[![PyPI](https://img.shields.io/pypi/v/viseda.svg)](https://pypi.org/project/viseda/)
+[![Python](https://img.shields.io/pypi/pyversions/viseda.svg)](https://pypi.org/project/viseda/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**One toolkit for inspecting, understanding, and validating visual and text datasets before modelling.**
+
+</div>
+
+---
+
+## Overview
+
+**VisEDA** is a Python toolkit for exploratory data analysis across five major data modalities:
+
+| Module | Designed for | Core analyses |
+|---|---|---|
+| **ImageEDA** | Image datasets | size, aspect ratio, brightness, contrast, sharpness, noise, exposure, colour, texture, frequency, duplicates, class balance |
+| **VideoEDA** | Video datasets | frame count, duration, FPS, temporal brightness/contrast, sharpness, blur, motion, scene changes, similarity |
+| **HyperspectralEDA** | Hyperspectral cubes | band statistics, SNR, noise, dropout bands, vegetation/water indices, PCA, false colour, spectral diversity |
+| **PointCloudEDA** | 3D point clouds | geometry, density, height, duplicates, outliers, nearest neighbours, PCA shape descriptors, cloud distances |
+| **TextEDA** | Text/NLP datasets | document length, vocabulary, lexical diversity, readability, symbols, scripts, duplicates, TF-IDF distances, label analysis |
+
+VisEDA is intended for **data scientists, researchers, students, and practitioners** who want a consistent EDA workflow before training machine-learning or deep-learning models.
+
+---
+
+## Why VisEDA?
+
+Exploratory analysis is standard practice for tabular data, but visual and multimodal datasets often require separate tools and custom scripts.
+
+VisEDA provides a unified interface for:
+
+- **dataset inventory and integrity checks**
+- **quality and distribution analysis**
+- **class-balance inspection**
+- **duplicate and similarity analysis**
+- **per-sample and dataset-level visualisations**
+- **self-contained HTML reports**
+- **command-line workflows**
+- **Python API workflows**
+- **reproducible pre-model data auditing**
+
+The goal is simple:
+
+> **Understand the dataset before trusting the model.**
+
+---
 
 ## Installation
+
+Install the base package from PyPI:
 
 ```bash
 pip install viseda
 ```
 
-Optional file-format support:
+### Optional extras
+
+For extended hyperspectral file support:
 
 ```bash
-# MATLAB/ENVI/GeoTIFF hyperspectral files
 pip install "viseda[hyperspectral]"
+```
 
-# LAS/LAZ point clouds
+For LAS/LAZ point-cloud support:
+
+```bash
 pip install "viseda[pointcloud]"
+```
 
-# All optional file-format dependencies
+Install all optional dependencies:
+
+```bash
 pip install "viseda[all]"
 ```
 
-Python 3.9 or later is required.
+Python **3.9+** is recommended.
 
-## Quick start
+---
 
-### ImageEDA
+# Quick Start
+
+## ImageEDA
 
 ```python
 from viseda import ImageEDA
 
 eda = ImageEDA(verbose=True)
-eda.load("path/to/images", label_from_parent=True)
+
+eda.load(
+    "path/to/images",
+    label_from_parent=True
+)
 
 summary = eda.summary()
+
 print(summary["inventory"])
 print(summary["quality"])
 
-eda.plot(save_path="image_dashboard.png")
-eda.report("image_report.html")
+eda.plot_dataset(
+    save_path="outputs_img/plot_dataset.png"
+)
+
+eda.report(
+    "viseda_image_report.html"
+)
 ```
 
-In-memory images are supported through `load_arrays()`.
+ImageEDA can also analyse in-memory image arrays through `load_arrays()`.
 
-### VideoEDA
+---
+
+## VideoEDA
 
 ```python
 from viseda import VideoEDA
 
-eda = VideoEDA(verbose=True, frame_sample_rate=5)
-eda.load("path/to/videos", label_from_parent=True)
+eda = VideoEDA(
+    verbose=True,
+    frame_sample_rate=5
+)
 
-print(eda.summary()["temporal"])
-eda.plot_dataset(save_path="video_dashboard.png")
-eda.report("video_report.html")
+eda.load(
+    "path/to/videos",
+    label_from_parent=True
+)
+
+summary = eda.summary()
+
+print(summary["inventory"])
+print(summary["temporal"])
+print(summary["motion"])
+
+eda.plot_dataset(
+    save_path="outputs_video/plot_dataset.png"
+)
+
+eda.report(
+    "viseda_video_report.html"
+)
 ```
 
-NumPy video arrays can be loaded with `load_arrays()`.
+Video arrays can also be analysed directly through `load_arrays()`.
 
-### HyperspectralEDA
+---
+
+## HyperspectralEDA
 
 ```python
 import numpy as np
 from viseda import HyperspectralEDA
 
-cube = np.random.default_rng(0).random((128, 128, 103)).astype("float32")
-wavelengths = np.linspace(400, 1500, cube.shape[2])
+cube = np.random.default_rng(0).random(
+    (128, 128, 103)
+).astype("float32")
 
-np.save("scene.npy", cube)
+wavelengths = np.linspace(
+    400,
+    1500,
+    cube.shape[2]
+)
 
 eda = HyperspectralEDA(
     wavelengths=wavelengths,
     compute_glcm=False,
     compute_pca=True,
 )
-eda.load("scene.npy")
 
-print(eda.summary()["spectral_quality"])
-ndvi = eda.compute_index(cube_index=0, index_name="ndvi")
-scores, variance_ratio = eda.pca_scores(cube_index=0, n_components=3)
+eda.load_arrays(
+    [cube],
+    labels=["scene"]
+)
 
-eda.plot(save_path="hyper_dashboard.png")
-eda.report("hyper_report.html")
+summary = eda.summary()
+
+print(summary["inventory"])
+print(summary["spectral_quality"])
+
+ndvi = eda.compute_index(
+    cube_index=0,
+    index_name="ndvi"
+)
+
+scores, variance_ratio = eda.pca_scores(
+    cube_index=0,
+    n_components=3
+)
+
+eda.plot(
+    save_path="outputs_hyper/plot.png"
+)
+
+eda.report(
+    "viseda_hyper_report.html"
+)
 ```
 
-The `hyperspectral` extra adds support for MATLAB `.mat`, ENVI, and
-multi-band GeoTIFF files.
+The `hyperspectral` extra adds support for additional formats such as MATLAB, ENVI, and multi-band GeoTIFF datasets.
 
-### PointCloudEDA
+---
+
+## PointCloudEDA
 
 ```python
 import numpy as np
 from viseda import PointCloudEDA
 
-points = np.random.default_rng(0).random((10000, 3)).astype("float32")
+points = np.random.default_rng(0).random(
+    (10000, 3)
+).astype("float32")
 
 eda = PointCloudEDA(
     max_points_per_cloud=200000,
     compute_neighbors=True,
     compute_geometry=True,
 )
-eda.load_arrays([points], labels=["sample"])
 
-print(eda.summary()["geometry"])
-eda.plot_dataset(save_path="pointcloud_dashboard.png")
-eda.report("pointcloud_report.html")
+eda.load_arrays(
+    [points],
+    labels=["sample"]
+)
+
+summary = eda.summary()
+
+print(summary["inventory"])
+print(summary["geometry"])
+print(summary["quality"])
+
+eda.plot_dataset(
+    save_path="outputs_pointcloud/plot_dataset.png"
+)
+
+eda.report(
+    "viseda_pointcloud_report.html"
+)
 ```
 
-The `pointcloud` extra adds LAS/LAZ support. NPY, NPZ, TXT, CSV, XYZ, PTS,
-and ASCII PLY are supported by the base installation.
+The base installation supports common NumPy/text point-cloud formats. The `pointcloud` extra adds LAS/LAZ support.
 
-### TextEDA
+---
+
+## TextEDA
 
 ```python
 from viseda import TextEDA
 
 eda = TextEDA()
+
 eda.load_texts(
     [
-        "Exploratory data analysis is useful before model training.",
-        "TextEDA summarises vocabulary, length, readability and duplicates.",
+        "Exploratory data analysis should come before model training.",
+        "TextEDA analyses vocabulary, length, readability and duplicates.",
     ],
     labels=["eda", "eda"],
 )
 
-print(eda.summary()["lexical"])
-print(eda.vocabulary(top_n=10))
+summary = eda.summary()
 
-eda.plot_dataset(save_path="text_dashboard.png")
-eda.report("text_report.html")
+print(summary["length"])
+print(summary["lexical"])
+
+print(
+    eda.vocabulary(top_n=10)
+)
+
+eda.plot_dataset(
+    save_path="outputs_text/plot_dataset.png"
+)
+
+eda.report(
+    "viseda_text_report.html"
+)
 ```
 
-TextEDA also loads TXT, Markdown, HTML, CSV, TSV, JSON, JSONL and NDJSON
-datasets through `load()`.
+TextEDA also supports directory datasets and structured files such as CSV, TSV, JSON, JSONL, Markdown, HTML and plain text.
 
-## Command line
+---
 
-The package installs the `viseda` command:
+# Command-Line Interface
+
+VisEDA installs a unified command:
 
 ```bash
 viseda --help
 ```
 
-Available subcommands are:
+Available subcommands:
 
 ```text
 viseda image ...
+viseda video ...
 viseda hyper ...
 viseda cloud ...
-viseda video ...
 viseda text ...
 ```
 
-Examples:
+### Image dataset
 
 ```bash
-viseda image "C:/datasets/images" --label-from-parent --plot --report image_report.html
-
-viseda video "C:/datasets/videos" --label-from-parent --plot --report video_report.html
-
-viseda hyper "C:/datasets/hyper" --label-from-parent --plot --dataset-plot \
-  --report hyper_report.html
-
-viseda cloud "C:/datasets/pointclouds" --label-from-parent --plot \
-  --report pointcloud_report.html
-
-viseda text "C:/datasets/text" --label-from-parent --plot \
-  --report text_report.html
+viseda image "C:/datasets/images" \
+    --label-from-parent \
+    --plot \
+    --report viseda_image_report.html
 ```
 
-Use `viseda <subcommand> --help` for the options of a particular modality.
+### Video dataset
 
-## Supported input formats
+```bash
+viseda video "C:/datasets/videos" \
+    --label-from-parent \
+    --plot \
+    --report viseda_video_report.html
+```
 
-| Module | Main file inputs |
+### Hyperspectral dataset
+
+```bash
+viseda hyper "C:/datasets/hyper" \
+    --label-from-parent \
+    --plot \
+    --dataset-plot \
+    --report viseda_hyper_report.html
+```
+
+### Point-cloud dataset
+
+```bash
+viseda cloud "C:/datasets/pointclouds" \
+    --label-from-parent \
+    --plot \
+    --report viseda_pointcloud_report.html
+```
+
+### Text dataset
+
+```bash
+viseda text "C:/datasets/text" \
+    --label-from-parent \
+    --plot \
+    --report viseda_text_report.html
+```
+
+For command-specific options:
+
+```bash
+viseda image --help
+viseda video --help
+viseda hyper --help
+viseda cloud --help
+viseda text --help
+```
+
+---
+
+# HTML Reports
+
+Every VisEDA module can generate a standalone HTML report.
+
+```python
+eda.report("report.html")
+```
+
+Reports are designed to provide a portable summary of dataset properties and quality indicators that can be opened directly in a browser.
+
+Typical report sections include:
+
+- dataset inventory
+- labels/classes
+- spatial or structural statistics
+- quality metrics
+- modality-specific statistics
+- duplicate/similarity information where applicable
+- summary distributions
+- analysis metadata
+
+---
+
+# Visualisation Workflows
+
+Each module provides a comprehensive dataset dashboard plus specialised plots.
+
+Examples include:
+
+```python
+eda.plot_dataset()
+```
+
+and modality-specific methods for tasks such as:
+
+- sample previews
+- colour analysis
+- quality analysis
+- temporal analysis
+- spectral analysis
+- PCA analysis
+- point-cloud geometry
+- vocabulary and n-gram frequency
+- pairwise similarity/distance matrices
+
+---
+
+# Supported Input Formats
+
+| Module | Main supported inputs |
 |---|---|
-| ImageEDA | JPG/JPEG, PNG, BMP, TIFF and other formats accepted by the current image loader |
-| VideoEDA | MP4, AVI, MOV, MKV, WEBM, MPEG/MPG, M4V |
-| HyperspectralEDA | MAT, NPY, NPZ, ENVI HDR/BIL/BIP/BSQ/ENVI, TIF/TIFF |
-| PointCloudEDA | NPY, NPZ, TXT, CSV, XYZ, PTS, ASCII PLY, LAS/LAZ |
-| TextEDA | TXT/TEXT, MD, RST, LOG, HTML/HTM, CSV/TSV, JSON, JSONL/NDJSON |
+| **ImageEDA** | JPG/JPEG, PNG, BMP, TIFF and other supported image formats |
+| **VideoEDA** | MP4, AVI, MOV, MKV, WEBM, MPEG/MPG, M4V |
+| **HyperspectralEDA** | NPY, NPZ, MAT, ENVI HDR/BIL/BIP/BSQ/ENVI, TIF/TIFF |
+| **PointCloudEDA** | NPY, NPZ, TXT, CSV, XYZ, PTS, ASCII PLY, LAS/LAZ |
+| **TextEDA** | TXT/TEXT, MD, RST, LOG, HTML/HTM, CSV/TSV, JSON, JSONL/NDJSON |
 
-Some file formats require the optional extras described above.
+Some formats require optional dependencies.
 
+---
 
-## License
+# Typical Workflow
 
-MIT. See `LICENSE`.
+```text
+Raw Dataset
+    │
+    ▼
+Load with VisEDA
+    │
+    ▼
+Dataset Inventory
+    │
+    ▼
+Quality & Distribution Analysis
+    │
+    ▼
+Duplicate / Similarity Checks
+    │
+    ▼
+Visual Diagnostics
+    │
+    ▼
+HTML Report
+    │
+    ▼
+Preprocessing Decisions
+    │
+    ▼
+Model Training
+```
+
+---
+
+# Package Structure
+
+```text
+viseda/
+├── image/
+├── video/
+├── hyperspectral/
+├── pointcloud/
+├── text/
+├── report/
+├── core/
+├── utils/
+├── cli.py
+└── __init__.py
+```
+
+The main classes can be imported directly:
+
+```python
+from viseda import (
+    ImageEDA,
+    VideoEDA,
+    HyperspectralEDA,
+    PointCloudEDA,
+    TextEDA,
+)
+```
+
+---
+
+# Development
+
+Clone the repository and install in editable mode:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run the tests:
+
+```bash
+python -m pytest
+```
+
+Build a distribution:
+
+```bash
+python -m pip install --upgrade build twine
+
+python -m build
+python -m twine check dist/*
+```
+
+---
+
+# Documentation
+
+The VisEDA documentation covers all five modules in detail, including:
+
+- installation
+- quick-start workflows
+- complete metric explanations
+- visualisation interpretation
+- Python API
+- command-line interface
+- HTML reports
+- test workflows
+- advanced use cases
+- troubleshooting
+- API reference
+- changelog and roadmap
+
+---
+
+# Citation
+
+If VisEDA contributes to your research, software project, dissertation, or publication, please cite the project or associated publication when a formal citation becomes available.
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+Useful contributions include:
+
+- bug reports
+- additional file-format support
+- new EDA metrics
+- additional visualisations
+- documentation improvements
+- performance optimisations
+- tests and reproducible examples
+
+Before proposing major API changes, please open an issue describing the motivation and expected behaviour.
+
+---
+
+# License
+
+VisEDA is released under the **MIT License**.
+
+See `LICENSE` for details.
+
+---
+
+<div align="center">
+
+### VisEDA
+
+**Explore first. Model second.**
+
+ImageEDA · VideoEDA · HyperspectralEDA · PointCloudEDA · TextEDA
+
+</div>
