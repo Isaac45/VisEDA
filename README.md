@@ -200,22 +200,6 @@ Use `viseda <subcommand> --help` for the options of a particular modality.
 
 Some file formats require the optional extras described above.
 
-## Development
-
-Install the project in editable mode with development tools:
-
-```bash
-python -m pip install -e ".[dev]"
-pytest
-```
-
-Build and validate a release:
-
-```bash
-python -m pip install --upgrade build twine
-python -m build
-python -m twine check dist/*
-```
 
 ## License
 
