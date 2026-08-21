@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
+<img src="outputs/VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
 
 # VisEDA
 
@@ -531,8 +531,49 @@ The VisEDA documentation covers all five modules in detail, including:
 
 # Citation
 
-If VisEDA contributes to your research, software project, dissertation, or publication, please cite the project or associated publication when a formal citation becomes available.
+If you use **VisEDA** in your research, publication, dissertation, thesis, teaching, or software project, please cite the software as follows:
 
+> **I.O. Agyemang, D. Acheampong, A.A. Baffour,  & I. Adjei-Mensah**  
+> *VisEDA: A Unified Exploratory Data Analysis Toolkit for Image, Video, Hyperspectral, Point Cloud, and Text Data.*  
+> GitHub repository: https://github.com/Isaac45/VisEDA
+
+## Authors and Affiliations
+
+**Isaac Osei Agyemang**  
+Data Science and Big Data Technology, Stirling College, Chengdu University,  
+Chengdu 610054, P.R. China
+
+**Daniel Acheampong**  
+Lutgert College, Florida Gulf Coast University, USA
+
+**Adu Asare Baffour**  
+School of Science and Engineering, University of Missouri-Kansas City, USA
+
+**Isaac Adjei-Mensah**  
+College of Artificial Intelligence, Yango University,  
+Fuzhou 350015, P.R. China  
+
+Fujian University Engineering Research Center of Spatial Data Mining and Applications,  
+Yango University, Fuzhou 350015, P.R. China
+
+## BibTeX
+
+```bibtex
+@software{agyemang_viseda,
+  author = {
+    Agyemang, Isaac Osei and
+    Acheampong, Daniel and
+    Baffour, Adu Asare and
+    Adjei-Mensah, Isaac
+  },
+  title = {
+    VisEDA: A Unified Exploratory Data Analysis Toolkit for
+    Image, Video, Hyperspectral, Point Cloud, and Text Data
+  },
+  url = {https://github.com/Isaac45/VisEDA},
+  note = {Python software library}
+}
+```
 ---
 
 # Contributing
