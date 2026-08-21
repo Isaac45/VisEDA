@@ -1508,17 +1508,22 @@ class HyperspectralEDA:
                     transform=ax.transAxes, ha="right", va="bottom",
                     fontsize=7, color="#e3b341")
 
-    def _plot_hist(self, ax, data, title, color, bins=20):
-        data = [d for d in data if d is not None and np.isfinite(d)]
-        if not data:
-            ax.set_title(title, color="#1f2328", fontsize=9); return
-        ax.hist(data, bins=bins, color=color, alpha=0.85, edgecolor="none")
-        mu = float(np.mean(data))
-        ax.axvline(mu, color="#1f2328", lw=1.2, linestyle="--",
-                   alpha=0.7, label=f"μ={mu:.3f}")
-        ax.set_title(title, color="#1f2328", fontsize=9)
-        ax.legend(fontsize=7, labelcolor="#1f2328",
-                  facecolor="white", edgecolor="#d0d7de")
+    def _plot_hist(self, ax, data, title: str, color: str = "#58a6ff") -> None:
+        """Histogram with explicit metric axes."""
+        vals = np.asarray([v for v in data if v is not None and np.isfinite(v)], dtype=float)
+        if vals.size == 0:
+            ax.set_title(title)
+            ax.set_xlabel(title)
+            ax.set_ylabel("Number of cubes")
+            ax.text(0.5, 0.5, "No data", ha="center", va="center")
+            return
+        ax.hist(vals, bins=min(30, max(5, vals.size)), color=color, alpha=0.85, edgecolor="white")
+        ax.axvline(vals.mean(), color="#1f2328", linestyle="--", linewidth=1,
+                   label=f"Mean = {vals.mean():.2f}")
+        ax.set_title(title)
+        ax.set_xlabel(title)
+        ax.set_ylabel("Number of cubes")
+        ax.legend(fontsize=7)
 
     def _plot_cross_spectrum(self, ax, s):
         ss = s["spectral_stats"]

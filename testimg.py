@@ -427,7 +427,7 @@ def parse_args():
                    help="Save plots to ./outputs_img/ instead of displaying")
     p.add_argument("--quick", action="store_true",
                    help="Skip slow tests (average image computation)")
-    p.add_argument("--report", default="viseda_report.html",
+    p.add_argument("--report", default="viseda_image_report.html",
                    help="Output path for HTML report")
     p.add_argument("--blur-thresh", type=float, default=50.0,
                    help="Laplacian variance threshold for blurry detection")

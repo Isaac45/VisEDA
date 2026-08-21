@@ -1268,24 +1268,30 @@ class ImageEDA:
                     transform=ax.transAxes, ha="right", va="bottom",
                     fontsize=7, color="#e3b341")
 
-    def _plot_hist(self, ax, data, title, color, bins=30, log_x=False):
-        data = [d for d in data if d is not None and np.isfinite(d)]
-        if not data:
-            ax.set_title(title, color="#1f2328", fontsize=9); return
+    def _plot_hist(self, ax, data, title, color, log_x=False):
+        """Histogram with explicit axis metrics for interpretation."""
+        vals = np.array([v for v in data if v is not None and np.isfinite(v)])
         if log_x:
-            data = [d for d in data if d > 0]
-            ax.hist(data, bins=np.logspace(np.log10(min(data)),
-                                           np.log10(max(data)), bins),
-                    color=color, alpha=0.85, edgecolor="none")
-            ax.set_xscale("log")
+            vals = vals[vals > 0]
+            vals = np.log10(vals + 1e-9)
+            x_label = f"log10({title})"
         else:
-            ax.hist(data, bins=bins, color=color, alpha=0.85, edgecolor="none")
-        mu = np.mean(data)
-        ax.axvline(mu, color="#1f2328", lw=1.2, linestyle="--", alpha=0.8,
-                   label=f"μ={mu:.2f}")
-        ax.set_title(title, color="#1f2328", fontsize=9)
-        ax.legend(fontsize=7, labelcolor="#1f2328",
-                  facecolor="#eaeef2", edgecolor="#d0d7de")
+            x_label = title
+
+        if len(vals) == 0:
+            ax.text(0.5, 0.5, "No data", ha="center", va="center")
+            ax.set_title(title)
+            ax.set_xlabel(x_label)
+            ax.set_ylabel("Number of images")
+            return
+
+        ax.hist(vals, bins=30, color=color, alpha=0.85, edgecolor="white")
+        ax.axvline(vals.mean(), color="#1f2328", ls="--", lw=1,
+                   label=f"Mean = {vals.mean():.2f}")
+        ax.set_title(title)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel("Number of images")
+        ax.legend(fontsize=7)
 
     def _plot_channel_histograms(self, ax, valid):
         means = np.array([r.mean_rgb for r in valid if r.mean_rgb])

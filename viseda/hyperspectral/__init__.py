@@ -1,3 +1,1 @@
-from viseda.hyperspectral.eda import HyperspectralEDA
-
-__all__ = ["HyperspectralEDA"]
+from viseda.hyperspectral.eda import *

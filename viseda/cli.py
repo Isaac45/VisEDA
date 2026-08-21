@@ -50,6 +50,33 @@ def _cmd_video(args):
         eda.plot(video_index=0, save_path=args.save_plot) if args.single_plot else eda.plot_dataset(save_path=args.save_plot)
 
 
+def _cmd_text(args):
+    from viseda import TextEDA
+    eda = TextEDA(
+        verbose=True,
+        max_documents=args.max,
+        lowercase=not args.preserve_case,
+        min_token_length=args.min_token_length,
+        short_document_words=args.short_words,
+        long_document_words=args.long_words,
+        encoding=args.encoding,
+    )
+    eda.load(
+        args.path,
+        label_from_parent=args.label_from_parent,
+        text_field=args.text_field,
+        label_field=args.label_field,
+    )
+    _print_summary(eda.summary())
+    if args.report:
+        eda.report(args.report)
+    if args.plot:
+        if args.single_plot:
+            eda.plot(document_index=args.document_index, save_path=args.save_plot)
+        else:
+            eda.plot_dataset(save_path=args.save_plot)
+
+
 def _print_summary(s):
     import json
     print(json.dumps(s, indent=2, default=str))
@@ -86,8 +113,31 @@ def main():
     p.add_argument("--plot", action="store_true"); p.add_argument("--single-plot", action="store_true")
     p.add_argument("--save-plot", default=None)
 
+    p = sub.add_parser("text", help="EDA on text and NLP datasets")
+    p.add_argument("path", help="Text file or dataset directory")
+    p.add_argument("--max", type=int, default=None, help="Maximum documents to analyse")
+    p.add_argument("--text-field", default=None, help="Text column/key for CSV/TSV/JSON")
+    p.add_argument("--label-field", default=None, help="Label column/key for CSV/TSV/JSON")
+    p.add_argument("--label-from-parent", action="store_true", help="Use parent folder as label")
+    p.add_argument("--encoding", default=None, help="Preferred input encoding")
+    p.add_argument("--preserve-case", action="store_true", help="Do not lowercase tokens")
+    p.add_argument("--min-token-length", type=int, default=1)
+    p.add_argument("--short-words", type=int, default=5, help="Very-short document threshold")
+    p.add_argument("--long-words", type=int, default=1000, help="Very-long document threshold")
+    p.add_argument("--report", default=None, help="Save HTML report")
+    p.add_argument("--plot", action="store_true", help="Show/save a dashboard")
+    p.add_argument("--single-plot", action="store_true", help="Plot one document instead of dataset")
+    p.add_argument("--document-index", type=int, default=0)
+    p.add_argument("--save-plot", default=None)
+
     args = parser.parse_args()
-    {"image": _cmd_image, "hyper": _cmd_hyper, "cloud": _cmd_cloud, "video": _cmd_video}[args.command](args)
+    {
+        "image": _cmd_image,
+        "hyper": _cmd_hyper,
+        "cloud": _cmd_cloud,
+        "video": _cmd_video,
+        "text": _cmd_text,
+    }[args.command](args)
 
 
 if __name__ == "__main__":

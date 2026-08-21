@@ -1,289 +1,222 @@
-# 🔬 VisEDA — Visual Exploratory Data Analysis
+# VisEDA — Visual Exploratory Data Analysis
 
-[![PyPI version](https://badge.fury.io/py/viseda.svg)](https://pypi.org/project/viseda/)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://github.com/your-org/viseda/actions/workflows/tests.yml/badge.svg)](https://github.com/your-org/viseda/actions)
+VisEDA is a Python toolkit for exploratory data analysis of **image, video,
+hyperspectral, point-cloud, and text/NLP datasets**. It provides numerical
+summaries, dataset-level visualisations, per-sample diagnostics, duplicate or
+similarity analysis where applicable, command-line workflows, and
+self-contained HTML reports.
 
-> **The missing EDA toolkit for non-tabular data.**
->
-> While pandas-profiling and ydata-profiling cover tabular data beautifully,
-> researchers working with **images**, **hyperspectral cubes**, and **point clouds**
-> have had no equivalent. VisEDA fills that gap.
+## Modules
 
----
+- **ImageEDA** — spatial, pixel, quality, colour, texture, frequency, duplicate,
+  class-balance, and normalisation analysis.
+- **VideoEDA** — spatial, temporal, motion, blur, scene-change, colour, and
+  video-similarity analysis.
+- **HyperspectralEDA** — per-band statistics, SNR/noise, spectral quality,
+  vegetation/water indices, PCA, false-colour, texture, and spectral-diversity analysis.
+- **PointCloudEDA** — geometry, density, height, duplicate/outlier,
+  nearest-neighbour, PCA shape-descriptor, and attribute analysis.
+- **TextEDA** — length, vocabulary, lexical diversity, symbols, readability,
+  writing scripts, duplicates, TF-IDF document distances, and label analysis.
 
-## ✨ Features
-
-### 🖼 ImageEDA
-| Analysis | Details |
-|---|---|
-| Dataset inventory | Count, corrupt detection, file size distribution |
-| Spatial stats | Height, width, aspect ratio distributions |
-| Pixel statistics | Brightness, contrast (std), sharpness (Laplacian variance), entropy |
-| Channel analysis | Per-channel mean/std histograms, HSV hue distribution |
-| Colour palette | Dominant colours via K-Means |
-| Duplicate detection | Perceptual hash (pHash) near-duplicate grouping |
-| Label distribution | From folder names or a user-supplied dict |
-| Visualisation | Dark-theme EDA dashboard, sample grid, channel correlation matrix |
-| Reports | Self-contained HTML report |
-
-### 🌈 HyperspectralEDA
-- Per-band mean, std, SNR, noise (MAD), saturation fraction
-- Band correlation heatmap
-- Mean spectral signature + ±1σ variance envelope
-- PCA of spectral dimension (randomised SVD)
-- NDVI and spectral index maps (when wavelengths provided)
-- False-colour preview
-
-### ☁️ PointCloudEDA
-- Bounding box, spatial extent, density (pts/unit³)
-- Height (Z) profile, XY density heatmap
-- Intensity and RGB channel distributions
-- Label / classification distribution
-- Spatial outlier detection (Z-score)
-- Top-down, side-view, and interactive 3D scatter plots
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
-# Core (image EDA only)
 pip install viseda
+```
 
-# With hyperspectral support
+Optional file-format support:
+
+```bash
+# MATLAB/ENVI/GeoTIFF hyperspectral files
 pip install "viseda[hyperspectral]"
 
-# With point cloud support
+# LAS/LAZ point clouds
 pip install "viseda[pointcloud]"
 
-# Everything
+# All optional file-format dependencies
 pip install "viseda[all]"
 ```
 
----
+Python 3.9 or later is required.
 
-## 🚀 Quick Start
+## Quick start
 
-### Image EDA
+### ImageEDA
 
 ```python
 from viseda import ImageEDA
 
 eda = ImageEDA(verbose=True)
+eda.load("path/to/images", label_from_parent=True)
 
-# Load from a directory (labels inferred from sub-folder names)
-eda.load("path/to/dataset/", label_from_parent=True)
-
-# Or load NumPy arrays directly
-import numpy as np
-arrays = [np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8) for _ in range(100)]
-eda.load_arrays(arrays, labels=["cat", "dog"] * 50)
-
-# Summary dict
 summary = eda.summary()
-print(summary["brightness"])
-# {'min': 94.3, 'max': 162.1, 'mean': 127.5, 'median': 128.0, 'std': 12.4, ...}
+print(summary["inventory"])
+print(summary["quality"])
 
-# Full matplotlib dashboard
-eda.plot()
-
-# Save dashboard to file
-eda.plot(save_path="dashboard.png")
-
-# Sample grid
-eda.plot_samples(n=25, cols=5)
-
-# Channel correlation matrix
-eda.plot_channel_correlation()
-
-# HTML report
-eda.report("report.html")
+eda.plot(save_path="image_dashboard.png")
+eda.report("image_report.html")
 ```
 
-### Hyperspectral EDA
+In-memory images are supported through `load_arrays()`.
+
+### VideoEDA
+
+```python
+from viseda import VideoEDA
+
+eda = VideoEDA(verbose=True, frame_sample_rate=5)
+eda.load("path/to/videos", label_from_parent=True)
+
+print(eda.summary()["temporal"])
+eda.plot_dataset(save_path="video_dashboard.png")
+eda.report("video_report.html")
+```
+
+NumPy video arrays can be loaded with `load_arrays()`.
+
+### HyperspectralEDA
 
 ```python
 import numpy as np
 from viseda import HyperspectralEDA
 
-wavelengths = np.linspace(400, 2500, 200)  # VNIR-SWIR
-eda = HyperspectralEDA(wavelengths=wavelengths)
+cube = np.random.default_rng(0).random((128, 128, 103)).astype("float32")
+wavelengths = np.linspace(400, 1500, cube.shape[2])
 
-# Load ENVI file
-eda.load("scene.hdr")
+np.save("scene.npy", cube)
 
-# Or a NumPy cube (H × W × Bands)
-cube = np.random.rand(512, 512, 200).astype(np.float32)
-eda.load(cube)
+eda = HyperspectralEDA(
+    wavelengths=wavelengths,
+    compute_glcm=False,
+    compute_pca=True,
+)
+eda.load("scene.npy")
 
-summary = eda.summary()
-print(summary["shape"])          # {'H': 512, 'W': 512, 'bands': 200}
-print(summary["band_snr"][:5])   # SNR for first 5 bands
+print(eda.summary()["spectral_quality"])
+ndvi = eda.compute_index(cube_index=0, index_name="ndvi")
+scores, variance_ratio = eda.pca_scores(cube_index=0, n_components=3)
 
-# Spectral signature of a pixel
-wl, sig = eda.spectral_signature(row=100, col=200)
-
-# NDVI map
-ndvi = eda.compute_ndvi(nir_band=140, red_band=60)
-
-# PCA
-scores, variance_ratio = eda.pca(n_components=10)
-
-# Dashboard
-eda.plot()
+eda.plot(save_path="hyper_dashboard.png")
+eda.report("hyper_report.html")
 ```
 
-### Point Cloud EDA
+The `hyperspectral` extra adds support for MATLAB `.mat`, ENVI, and
+multi-band GeoTIFF files.
+
+### PointCloudEDA
 
 ```python
+import numpy as np
 from viseda import PointCloudEDA
 
-eda = PointCloudEDA(max_points=500_000)
+points = np.random.default_rng(0).random((10000, 3)).astype("float32")
 
-# Load LAS/LAZ file
-eda.load("scan.las")
+eda = PointCloudEDA(
+    max_points_per_cloud=200000,
+    compute_neighbors=True,
+    compute_geometry=True,
+)
+eda.load_arrays([points], labels=["sample"])
 
-# Or PLY / PCD / XYZ / NPY
-eda.load("cloud.ply")
-
-# Or a NumPy array  (N × 3+  →  X Y Z [Intensity [R G B [Label]]])
-import numpy as np
-pts = np.random.rand(100_000, 3).astype(np.float32)
-eda.load(pts)
-
-summary = eda.summary()
-print(summary["n_points"])              # 100000
-print(summary["z"])                     # height stats dict
-print(summary["estimated_outliers"])    # ~95 (≈ 0.1 %)
-
-# 2D dashboard
-eda.plot()
-
-# Interactive 3D scatter
-eda.plot_3d(color_by="z")
+print(eda.summary()["geometry"])
+eda.plot_dataset(save_path="pointcloud_dashboard.png")
+eda.report("pointcloud_report.html")
 ```
 
-### CLI
+The `pointcloud` extra adds LAS/LAZ support. NPY, NPZ, TXT, CSV, XYZ, PTS,
+and ASCII PLY are supported by the base installation.
+
+### TextEDA
+
+```python
+from viseda import TextEDA
+
+eda = TextEDA()
+eda.load_texts(
+    [
+        "Exploratory data analysis is useful before model training.",
+        "TextEDA summarises vocabulary, length, readability and duplicates.",
+    ],
+    labels=["eda", "eda"],
+)
+
+print(eda.summary()["lexical"])
+print(eda.vocabulary(top_n=10))
+
+eda.plot_dataset(save_path="text_dashboard.png")
+eda.report("text_report.html")
+```
+
+TextEDA also loads TXT, Markdown, HTML, CSV, TSV, JSON, JSONL and NDJSON
+datasets through `load()`.
+
+## Command line
+
+The package installs the `viseda` command:
 
 ```bash
-# Image EDA from the command line
-viseda image /path/to/images --label-from-parent --report report.html --plot
-
-# Hyperspectral
-viseda hyper scene.hdr --wavelengths wavelengths.npy --plot
-
-# Point cloud
-viseda cloud scan.las --max 500000 --plot
+viseda --help
 ```
 
----
+Available subcommands are:
 
-## 📐 Project Structure
-
-```
-viseda/
-├── viseda/
-│   ├── __init__.py              # Public API: ImageEDA, HyperspectralEDA, PointCloudEDA
-│   ├── cli.py                   # viseda CLI
-│   ├── core/
-│   │   ├── __init__.py
-│   │   └── base.py              # BaseEDA abstract class
-│   ├── image/
-│   │   ├── __init__.py
-│   │   └── eda.py               # ImageEDA + ImageRecord
-│   ├── hyperspectral/
-│   │   ├── __init__.py
-│   │   └── eda.py               # HyperspectralEDA
-│   ├── pointcloud/
-│   │   ├── __init__.py
-│   │   └── eda.py               # PointCloudEDA
-│   ├── report/
-│   │   ├── __init__.py
-│   │   └── html_report.py       # HTML report generator
-│   └── utils/
-│       ├── __init__.py
-│       └── helpers.py           # Shared utilities
-├── tests/
-│   ├── test_image/
-│   ├── test_hyperspectral/
-│   └── test_pointcloud/
-├── examples/
-│   ├── image_eda_demo.py
-│   ├── hyperspectral_demo.py
-│   └── pointcloud_demo.py
-├── docs/
-├── pyproject.toml               # PEP 517/518 build config + metadata
-├── CHANGELOG.md
-├── LICENSE
-└── README.md
+```text
+viseda image ...
+viseda hyper ...
+viseda cloud ...
+viseda video ...
+viseda text ...
 ```
 
----
-
-## 🔧 Optional Dependencies
-
-| Extra | Packages | Enables |
-|---|---|---|
-| `hyperspectral` | `spectral`, `rasterio` | ENVI, GeoTIFF reading |
-| `pointcloud` | `laspy[lazrs]`, `open3d`, `plyfile`, `scipy` | LAS/LAZ, PLY, PCD, outlier analysis |
-| `report` | `jinja2` | Richer HTML reports |
-| `all` | all of the above | Everything |
-
----
-
-## 🏗 Publishing to PyPI
+Examples:
 
 ```bash
-# 1. Install build tools
-pip install build twine
+viseda image "C:/datasets/images" --label-from-parent --plot --report image_report.html
 
-# 2. Build wheel + sdist
-python -m build
+viseda video "C:/datasets/videos" --label-from-parent --plot --report video_report.html
 
-# 3. Check the package
-twine check dist/*
+viseda hyper "C:/datasets/hyper" --label-from-parent --plot --dataset-plot \
+  --report hyper_report.html
 
-# 4. Upload to TestPyPI first
-twine upload --repository testpypi dist/*
+viseda cloud "C:/datasets/pointclouds" --label-from-parent --plot \
+  --report pointcloud_report.html
 
-# 5. Test the install
-pip install --index-url https://test.pypi.org/simple/ viseda
-
-# 6. Upload to PyPI
-twine upload dist/*
+viseda text "C:/datasets/text" --label-from-parent --plot \
+  --report text_report.html
 ```
 
----
+Use `viseda <subcommand> --help` for the options of a particular modality.
 
-## 🧪 Running Tests
+## Supported input formats
+
+| Module | Main file inputs |
+|---|---|
+| ImageEDA | JPG/JPEG, PNG, BMP, TIFF and other formats accepted by the current image loader |
+| VideoEDA | MP4, AVI, MOV, MKV, WEBM, MPEG/MPG, M4V |
+| HyperspectralEDA | MAT, NPY, NPZ, ENVI HDR/BIL/BIP/BSQ/ENVI, TIF/TIFF |
+| PointCloudEDA | NPY, NPZ, TXT, CSV, XYZ, PTS, ASCII PLY, LAS/LAZ |
+| TextEDA | TXT/TEXT, MD, RST, LOG, HTML/HTM, CSV/TSV, JSON, JSONL/NDJSON |
+
+Some file formats require the optional extras described above.
+
+## Development
+
+Install the project in editable mode with development tools:
 
 ```bash
-pip install "viseda[dev]"
+python -m pip install -e ".[dev]"
 pytest
 ```
 
----
+Build and validate a release:
 
-## 🗺 Roadmap
+```bash
+python -m pip install --upgrade build twine
+python -m build
+python -m twine check dist/*
+```
 
-- [ ] Video EDA module (temporal frame statistics)
-- [ ] Depth map / RGB-D EDA
-- [ ] SAR (Synthetic Aperture Radar) EDA
-- [ ] Interactive HTML dashboard (Plotly / Bokeh)
-- [ ] Jupyter widget integration
-- [ ] GPU-accelerated stats via CuPy
+## License
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please open an issue first to discuss your idea,
-then submit a pull request against `main`.
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
+MIT. See `LICENSE`.

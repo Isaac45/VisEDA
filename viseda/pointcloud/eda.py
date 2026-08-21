@@ -815,6 +815,12 @@ class PointCloudEDA:
                 fontsize=8, family="monospace", bbox=dict(boxstyle="round,pad=0.5", facecolor="#f2f2f2"))
         ax.set_title("Cloud Overview")
 
+    def _style_ax(self, ax):
+        ax.set_facecolor('#f6f8fa')
+        for sp in ax.spines.values():
+            sp.set_edgecolor('#d0d7de')
+        ax.tick_params(colors='#57606a', labelsize=8)
+
     def _plot_label_dist(self, ax, valid: List[PointCloudRecord]) -> None:
         labels = [r.label for r in valid if r.label]
         if not labels:
