@@ -642,6 +642,8 @@ Fujian University Engineering Research Center of Spatial Data Mining and Applica
     Image, Video, Hyperspectral, Point Cloud, and Text Data
   },
   url = {https://github.com/Isaac45/VisEDA},
+  year = {2026},
+  version = {1.0.0}
   note = {Python software library}
 }
 ```
