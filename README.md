@@ -643,7 +643,7 @@ Fujian University Engineering Research Center of Spatial Data Mining and Applica
   },
   url = {https://github.com/Isaac45/VisEDA},
   year = {2026},
-  version = {1.0.0}
+  version = {1.0.0},
   note = {Python software library}
 }
 ```
