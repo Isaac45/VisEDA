@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
+<img src="outputs/VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
 
 # VisEDA
 
