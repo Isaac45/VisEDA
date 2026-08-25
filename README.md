@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="outputs/VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
+<img src="VisEDA.png" alt="VisEDA — Comprehensive Documentation" width="100%">
 
 # VisEDA
 
@@ -90,6 +90,10 @@ Python **3.9+** is recommended.
 
 # Quick Start
 
+
+> **Important:** ImageEDA uses `plot()` for its comprehensive dataset dashboard.  
+> VideoEDA, HyperspectralEDA, PointCloudEDA, and TextEDA expose `plot_dataset()` for dataset-level dashboards.
+
 ## ImageEDA
 
 ```python
@@ -107,8 +111,9 @@ summary = eda.summary()
 print(summary["inventory"])
 print(summary["quality"])
 
-eda.plot_dataset(
-    save_path="outputs_img/plot_dataset.png"
+# ImageEDA's full dataset dashboard is plot(), not plot_dataset()
+eda.plot(
+    save_path="image_dashboard.png"
 )
 
 eda.report(
@@ -116,7 +121,38 @@ eda.report(
 )
 ```
 
-ImageEDA can also analyse in-memory image arrays through `load_arrays()`.
+For in-memory images:
+
+```python
+import numpy as np
+from viseda import ImageEDA
+
+images = [
+    np.random.default_rng(0).integers(
+        0, 256, size=(128, 128, 3), dtype=np.uint8
+    ),
+    np.random.default_rng(1).integers(
+        0, 256, size=(128, 128, 3), dtype=np.uint8
+    ),
+]
+
+eda = ImageEDA(
+    verbose=False,
+    compute_glcm=False,
+    compute_freq=False,
+)
+
+eda.load_arrays(
+    images,
+    labels=["class_a", "class_b"]
+)
+
+print(eda.summary()["inventory"])
+
+eda.plot(
+    save_path="image_dashboard.png"
+)
+```
 
 ---
 
@@ -142,7 +178,7 @@ print(summary["temporal"])
 print(summary["motion"])
 
 eda.plot_dataset(
-    save_path="outputs_video/plot_dataset.png"
+    save_path="video_dashboard.png"
 )
 
 eda.report(
@@ -150,7 +186,14 @@ eda.report(
 )
 ```
 
-Video arrays can also be analysed directly through `load_arrays()`.
+For one video rather than the whole dataset:
+
+```python
+eda.plot(
+    video_index=0,
+    save_path="single_video.png"
+)
+```
 
 ---
 
@@ -160,14 +203,9 @@ Video arrays can also be analysed directly through `load_arrays()`.
 import numpy as np
 from viseda import HyperspectralEDA
 
-cube = np.random.default_rng(0).random(
-    (128, 128, 103)
-).astype("float32")
-
-wavelengths = np.linspace(
-    400,
-    1500,
-    cube.shape[2]
+# One wavelength value per spectral band
+wavelengths = np.load(
+    "path/to/wavelengths.npy"
 )
 
 eda = HyperspectralEDA(
@@ -176,9 +214,10 @@ eda = HyperspectralEDA(
     compute_pca=True,
 )
 
-eda.load_arrays(
-    [cube],
-    labels=["scene"]
+# File-backed loading is recommended when using compute_index()
+# or pca_scores().
+eda.load(
+    "path/to/cube.npy"
 )
 
 summary = eda.summary()
@@ -197,7 +236,8 @@ scores, variance_ratio = eda.pca_scores(
 )
 
 eda.plot(
-    save_path="outputs_hyper/plot.png"
+    cube_index=0,
+    save_path="hyperspectral_cube.png"
 )
 
 eda.report(
@@ -205,7 +245,24 @@ eda.report(
 )
 ```
 
-The `hyperspectral` extra adds support for additional formats such as MATLAB, ENVI, and multi-band GeoTIFF datasets.
+For a directory of hyperspectral cubes:
+
+```python
+from viseda import HyperspectralEDA
+
+eda = HyperspectralEDA()
+
+eda.load(
+    "path/to/hyperspectral_dataset",
+    label_from_parent=True
+)
+
+eda.plot_dataset(
+    save_path="hyperspectral_dataset.png"
+)
+```
+
+> **Current 1.0.0 note:** `load_arrays()` is suitable for summary and plotting workflows, but `compute_index()` and `pca_scores()` reload the selected cube from its source path. Use `load()` with a file-backed cube when calling those two methods.
 
 ---
 
@@ -237,7 +294,7 @@ print(summary["geometry"])
 print(summary["quality"])
 
 eda.plot_dataset(
-    save_path="outputs_pointcloud/plot_dataset.png"
+    save_path="pointcloud_dashboard.png"
 )
 
 eda.report(
@@ -245,7 +302,14 @@ eda.report(
 )
 ```
 
-The base installation supports common NumPy/text point-cloud formats. The `pointcloud` extra adds LAS/LAZ support.
+For an individual cloud:
+
+```python
+eda.plot(
+    cloud_index=0,
+    save_path="single_cloud.png"
+)
+```
 
 ---
 
@@ -274,7 +338,7 @@ print(
 )
 
 eda.plot_dataset(
-    save_path="outputs_text/plot_dataset.png"
+    save_path="text_dashboard.png"
 )
 
 eda.report(
@@ -282,7 +346,7 @@ eda.report(
 )
 ```
 
-TextEDA also supports directory datasets and structured files such as CSV, TSV, JSON, JSONL, Markdown, HTML and plain text.
+TextEDA also supports directory datasets and structured files such as CSV, TSV, JSON, JSONL, Markdown, HTML, and plain text.
 
 ---
 
@@ -387,15 +451,26 @@ Typical report sections include:
 
 # Visualisation Workflows
 
-Each module provides a comprehensive dataset dashboard plus specialised plots.
-
-Examples include:
+The dataset-level dashboard method is module-specific:
 
 ```python
-eda.plot_dataset()
+# ImageEDA
+image_eda.plot()
+
+# VideoEDA
+video_eda.plot_dataset()
+
+# HyperspectralEDA
+hyper_eda.plot_dataset()
+
+# PointCloudEDA
+cloud_eda.plot_dataset()
+
+# TextEDA
+text_eda.plot_dataset()
 ```
 
-and modality-specific methods for tasks such as:
+Specialised plotting methods are also available for modality-specific tasks such as:
 
 - sample previews
 - colour analysis
@@ -533,15 +608,14 @@ The VisEDA documentation covers all five modules in detail, including:
 
 If you use **VisEDA** in your research, publication, dissertation, thesis, teaching, or software project, please cite the software as follows:
 
-> **I.O. Agyemang, D. Acheampong, A.A. Baffour,  & I. Adjei-Mensah**  
-> *VisEDA: A Unified Exploratory Data Analysis Toolkit for Image, Video, Hyperspectral, Point Cloud, and Text Data.*  
+> **I.O.Agyemang, D. Acheampong, A.A.Baffour, & I. Adjei-Mensah**  
+> *VisEDA: A Unified Visual Exploratory Data Analysis Toolkit for Image, Video, Hyperspectral, Point Cloud, and Text Data.*  
 > GitHub repository: https://github.com/Isaac45/VisEDA
 
-## Authors and Affiliations
+## Authors
 
 **Isaac Osei Agyemang**  
-Data Science and Big Data Technology, Stirling College, Chengdu University,  
-Chengdu 610054, P.R. China
+Data Science and Big Data Technology, Stirling College, Chengdu University, Chengdu 610054, P.R. China
 
 **Daniel Acheampong**  
 Lutgert College, Florida Gulf Coast University, USA
@@ -550,11 +624,8 @@ Lutgert College, Florida Gulf Coast University, USA
 School of Science and Engineering, University of Missouri-Kansas City, USA
 
 **Isaac Adjei-Mensah**  
-College of Artificial Intelligence, Yango University,  
-Fuzhou 350015, P.R. China  
-
-Fujian University Engineering Research Center of Spatial Data Mining and Applications,  
-Yango University, Fuzhou 350015, P.R. China
+College of Artificial Intelligence, Yango University, Fuzhou 350015, P.R. China  
+Fujian University Engineering Research Center of Spatial Data Mining and Applications, Yango University, Fuzhou 350015, P.R. China
 
 ## BibTeX
 
@@ -574,6 +645,9 @@ Yango University, Fuzhou 350015, P.R. China
   note = {Python software library}
 }
 ```
+
+> If a DOI or peer-reviewed VisEDA publication becomes available, this section can be updated with the formal publication details.
+
 ---
 
 # Contributing
